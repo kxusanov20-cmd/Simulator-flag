@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Country Flags Battle</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: linear-gradient(120deg, #6ec6ff, #7ee0c0, #ffd76e, #ff9ecb, #b28dff, #6ec6ff);
+    background-size: 400% 400%;
+    animation: bgShift 18s ease infinite;
+    overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  @keyframes bgShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  #app {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    max-width: 500px;
+  }
+  #scoreboard {
+    width: 92%;
+    max-height: 15%;
+    overflow-x: auto;
+    display: flex;
+    gap: 5px;
+    padding: 8px 6px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 10px;
+    margin-top: 6px;
+  }
+  .score-item {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(0,0,0,0.35);
+    color: #fff;
+    border-radius: 8px;
+    padding: 3px 7px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  #roundLabel {
+    margin-top: 8px;
+    color: #fff;
+    font-size: clamp(22px, 6vmin, 34px);
+    font-weight: 900;
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+    letter-spacing: 2px;
+  }
+  #wrap {
+    position: relative;
+    width: 92vmin;
+    height: 92vmin;
+    max-width: 460px;
+    max-height: 460px;
+    margin-top: 4px;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  #winnerBanner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.4);
+    width: 94%;
+    line-height: 1.15;
+    text-align: center;
+    color: #fff700;
+    font-size: clamp(46px, 14vmin, 84px);
+    font-weight: 900;
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.6), 0 0 30px rgba(255,247,0,0.8);
+    display: none;
+    pointer-events: none;
+    z-index: 20;
+    opacity: 0;
+  }
+  #winnerBanner.show {
+    display: block;
+    animation: winnerPop 0.5s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  @keyframes winnerPop {
+    0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+    60%  { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  }
+  .cube {
+    position: absolute;
+    top: -20px;
+    z-index: 15;
+    pointer-events: none;
+    border-radius: 3px;
+    animation: cubeFall linear forwards;
+  }
+  @keyframes cubeFall {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(115vh) rotate(720deg); opacity: 0.9; }
+  }
+  #participants {
+    width: 96%;
+    max-height: 22%;
+    overflow-y: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px;
+    margin-top: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+  }
+  .p-item {
+    flex: 0 0 auto;
+    font-size: 20px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 6px;
+    padding: 2px 5px;
+  }
+  #muteBtn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 5;
+  }
+  #startOverlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(20,60,110,0.85);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  #startOverlay button {
+    padding: 14px 30px;
+    font-size: 18px;
+    font-weight: 800;
+    border: none;
+    border-radius: 26px;
+    background: #ffffff;
+    color: #1565c0;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  }
+  #countPicker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.15);
+    padding: 10px 16px;
+    border-radius: 16px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+  }
+  #countPicker input {
+    width: 70px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: none;
+    font-size: 15px;
+    text-align: center;
+  }
+  #settingsBtn {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 5;
+  }
+</style>
+</head>
+<body>
+<div id="startOverlay">
+  <div id="countPicker">
+    <label for="flagCountStart">Number of flags:</label>
+    <input id="flagCountStart" type="number" min="2" max="50" value="50">
+  </div>
+  <button id="startBtn">🔊 Tap to Start</button>
+</div>
+<div id="app">
+  <button id="settingsBtn">⚙️</button>
+  <button id="muteBtn">🔊</button>
+  <div id="countPickerInline" style="display:none;position:absolute;top:44px;left:6px;background:rgba(0,0,0,0.7);z-index:6;padding:8px 12px;border-radius:14px;align-items:center;gap:6px;color:#fff;font-weight:700;font-size:13px;">
+    <label for="flagCountInline">Flags:</label>
+    <input id="flagCountInline" type="number" min="2" max="50" value="50" style="width:55px;padding:4px;border-radius:6px;border:none;text-align:center;">
+    <button id="applyCountBtn" style="padding:5px 10px;border-radius:10px;border:none;background:#fff;color:#1565c0;font-weight:700;cursor:pointer;">Apply</button>
+  </div>
+  <div id="scoreboard"></div>
+  <div id="roundLabel">ROUND 1</div>
+  <div id="wrap">
+    <canvas id="c"></canvas>
+    <div id="winnerBanner"></div>
+  </div>
+  <div id="participants"></div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('wrap');
+const winnerBanner = document.getElementById('winnerBanner');
+const roundLabel = document.getElementById('roundLabel');
+const scoreboardEl = document.getElementById('scoreboard');
+const participantsEl = document.getElementById('participants');
+const muteBtn = document.getElementById('muteBtn');
+const startOverlay = document.getElementById('startOverlay');
+const startBtn = document.getElementById('startBtn');
+const flagCountStart = document.getElementById('flagCountStart');
+const settingsBtn = document.getElementById('settingsBtn');
+const countPickerInline = document.getElementById('countPickerInline');
+const flagCountInline = document.getElementById('flagCountInline');
+const applyCountBtn = document.getElementById('applyCountBtn');
+
+/* ---------- ASMR SOUND ENGINE (soft, generated, no files needed) ---------- */
+let audioCtx = null;
+let muted = false;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function softTone(freq, duration, type, volume, glideTo) {
+  if (muted || !audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 1800;
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (glideTo) osc.frequency.exponentialRampToValueAtTime(glideTo, t0 + duration);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(volume, t0 + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(t0);
+  osc.stop(t0 + duration + 0.02);
+}
+
+// Yumshoq "tap" tovushi - devorga urilganda
+function playBounce() {
+  const f = 420 + Math.random()*180;
+  softTone(f, 0.06, 'sine', 0.05, f*0.8);
+}
+
+// Yumshoq "click" tovushi - ikki bayroq to'qnashganda
+function playClick() {
+  const f = 600 + Math.random()*300;
+  softTone(f, 0.04, 'triangle', 0.045, f*0.6);
+}
+
+// Yumshoq pastlovchi "pop" - biror bayroq teshikdan chiqib yo'qolganda
+function playPop() {
+  softTone(280, 0.18, 'sine', 0.09, 60);
+}
+
+// Yoqimli ko'tariluvchi ohang - g'olib chiqqanda
+function playWin() {
+  if (muted || !audioCtx) return;
+  const notes = [523, 659, 784, 1046];
+  notes.forEach((n, i) => {
+    setTimeout(() => softTone(n, 0.3, 'sine', 0.07, null), i*110);
+  });
+}
+
+// G'olib davlat nomini ingliz tilida ovoz bilan aytish
+let cachedEnVoice = null;
+function pickEnglishVoice() {
+  if (cachedEnVoice) return cachedEnVoice;
+  const voices = window.speechSynthesis.getVoices();
+  cachedEnVoice = voices.find(v => v.lang === 'en-US') ||
+                  voices.find(v => v.lang && v.lang.startsWith('en')) ||
+                  null;
+  return cachedEnVoice;
+}
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => { cachedEnVoice = null; };
+}
+
+function speakWinner(name) {
+  if (muted) return;
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(name + ' wins!');
+    utter.lang = 'en-US';
+    const v = pickEnglishVoice();
+    if (v) utter.voice = v;
+    utter.rate = 0.95;
+    utter.pitch = 1.1;
+    utter.volume = 1;
+    window.speechSynthesis.speak(utter);
+  } catch (e) {}
+}
+
+let speechUnlocked = false;
+function unlockSpeech() {
+  if (speechUnlocked || !('speechSynthesis' in window)) return;
+  speechUnlocked = true;
+  try {
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+startBtn.addEventListener('click', () => {
+  initAudio();
+  unlockSpeech();
+  startOverlay.style.display = 'none';
+  selectedCount = clampCount(flagCountStart.value);
+  flagCountInline.value = selectedCount;
+  roundNum = 1;
+  initBalls();
+});
+
+muteBtn.addEventListener('click', () => {
+  muted = !muted;
+  muteBtn.textContent = muted ? '🔇' : '🔊';
+  if (muted && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+});
+// Ovozlar bir vaqtda ko'p chalinib ketmasligi uchun cheklov
+let lastBounceTime = 0;
+let lastClickTime = 0;
+function maybePlayBounce() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  if (now - lastBounceTime > 0.05) {
+    lastBounceTime = now;
+    playBounce();
+  }
+}
+function maybePlayClick() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  if (now - lastClickTime > 0.04) {
+    lastClickTime = now;
+    playClick();
+  }
+}
+/* --------------------------------------------------------------------- */
+
+/* ---------- USER-SELECTABLE FLAG COUNT ---------- */
+let selectedCount = 50;
+function clampCount(v) {
+  let n = parseInt(v, 10);
+  if (isNaN(n)) n = 50;
+  return Math.max(2, Math.min(50, n));
+}
+
+settingsBtn.addEventListener('click', () => {
+  const showing = countPickerInline.style.display === 'flex';
+  countPickerInline.style.display = showing ? 'none' : 'flex';
+});
+
+applyCountBtn.addEventListener('click', () => {
+  selectedCount = clampCount(flagCountInline.value);
+  flagCountInline.value = selectedCount;
+  countPickerInline.style.display = 'none';
+  roundNum = 1;
+  initBalls();
+});
+/* ------------------------------------------------- */
+
+const FLAGS = [
+  {emoji:'🇺🇸', name:'USA'},{emoji:'🇬🇧', name:'United Kingdom'},{emoji:'🇯🇵', name:'Japan'},
+  {emoji:'🇩🇪', name:'Germany'},{emoji:'🇫🇷', name:'France'},{emoji:'🇮🇹', name:'Italy'},
+  {emoji:'🇪🇸', name:'Spain'},{emoji:'🇰🇷', name:'South Korea'},{emoji:'🇧🇷', name:'Brazil'},
+  {emoji:'🇨🇦', name:'Canada'},{emoji:'🇷🇺', name:'Russia'},{emoji:'🇨🇳', name:'China'},
+  {emoji:'🇹🇷', name:'Turkey'},{emoji:'🇺🇿', name:'Uzbekistan'},{emoji:'🇮🇳', name:'India'},
+  {emoji:'🇲🇽', name:'Mexico'},{emoji:'🇸🇦', name:'Saudi Arabia'},{emoji:'🇦🇷', name:'Argentina'},
+  {emoji:'🇳🇱', name:'Netherlands'},{emoji:'🇸🇪', name:'Sweden'},{emoji:'🇮🇸', name:'Iceland'},
+  {emoji:'🇹🇭', name:'Thailand'},{emoji:'🇧🇮', name:'Burundi'},{emoji:'🇸🇰', name:'Slovakia'},
+  {emoji:'🇨🇷', name:'Costa Rica'},{emoji:'🇧🇬', name:'Bulgaria'},{emoji:'🇱🇦', name:'Laos'},
+  {emoji:'🇲🇩', name:'Moldova'},{emoji:'🇬🇭', name:'Ghana'},{emoji:'🇸🇷', name:'Suriname'},
+  {emoji:'🇷🇼', name:'Rwanda'},{emoji:'🇵🇱', name:'Poland'},{emoji:'🇵🇹', name:'Portugal'},
+  {emoji:'🇬🇷', name:'Greece'},{emoji:'🇳🇴', name:'Norway'},{emoji:'🇫🇮', name:'Finland'},
+  {emoji:'🇩🇰', name:'Denmark'},{emoji:'🇨🇭', name:'Switzerland'},{emoji:'🇦🇹', name:'Austria'},
+  {emoji:'🇧🇪', name:'Belgium'},{emoji:'🇮🇪', name:'Ireland'},{emoji:'🇮🇱', name:'Israel'},
+  {emoji:'🇪🇬', name:'Egypt'},{emoji:'🇿🇦', name:'South Africa'},{emoji:'🇳🇬', name:'Nigeria'},
+  {emoji:'🇰🇪', name:'Kenya'},{emoji:'🇦🇺', name:'Australia'},{emoji:'🇳🇿', name:'New Zealand'},
+  {emoji:'🇮🇩', name:'Indonesia'},{emoji:'🇵🇰', name:'Pakistan'}
+];
+
+let scores = {};
+FLAGS.forEach(f => scores[f.emoji] = 0);
+
+let W, H, R, CX, CY;
+let balls = [];
+let particles = [];
+let gameOver = false;
+let roundNum = 1;
+let nextRoundTimer = null;
+let nextBoostThreshold = -Infinity;
+
+const GAP_CENTER = 0;
+const GAP_WIDTH = 0.4;
+
+function resize() {
+  const rect = wrap.getBoundingClientRect();
+  W = rect.width; H = rect.height;
+  canvas.width = W;
+  canvas.height = H;
+  CX = W/2; CY = H/2;
+  R = Math.min(W,H)/2 - 10;
+}
+window.addEventListener('resize', resize);
+
+function rand(min, max){ return Math.random()*(max-min)+min; }
+
+function angleDiff(a, b) {
+  let d = a - b;
+  while (d > Math.PI) d -= Math.PI*2;
+  while (d < -Math.PI) d += Math.PI*2;
+  return d;
+}
+
+function renderScoreboard() {
+  const winners = FLAGS.filter(f => scores[f.emoji] > 0)
+                        .sort((a,b) => scores[b.emoji]-scores[a.emoji]);
+  scoreboardEl.innerHTML = winners.map(f =>
+    `<div class="score-item">${f.emoji} ${scores[f.emoji]}x</div>`
+  ).join('');
+}
+
+function renderParticipants() {
+  participantsEl.innerHTML = balls.map(b => `<div class="p-item">${b.flag}</div>`).join('');
+}
+
+function initBalls() {
+  balls = [];
+  particles = [];
+  gameOver = false;
+  winnerBanner.classList.remove('show');
+  roundLabel.textContent = 'ROUND ' + roundNum;
+
+  const pool = FLAGS.slice();
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const chosen = pool.slice(0, Math.min(selectedCount, pool.length));
+
+  const n = chosen.length;
+  nextBoostThreshold = n - 10;
+  const layout = ['scatter','ring','clusters'][Math.floor(Math.random()*3)];
+
+  for (let i=0; i<n; i++) {
+    let angle, dist;
+
+    if (layout === 'ring') {
+      // Doira ichida halqa shaklida, kichik tebranish bilan
+      angle = (Math.PI*2 / n) * i + rand(-0.15, 0.15);
+      dist = R * rand(0.55, 0.8);
+    } else if (layout === 'clusters') {
+      // Bir necha guruh (klaster) atrofida to'planadi
+      const clusterCount = 3 + Math.floor(Math.random()*2);
+      const clusterIndex = i % clusterCount;
+      const clusterAngle = (Math.PI*2 / clusterCount) * clusterIndex;
+      const clusterDist = R * rand(0.3, 0.6);
+      const cx = Math.cos(clusterAngle) * clusterDist;
+      const cy = Math.sin(clusterAngle) * clusterDist;
+      const offAngle = rand(0, Math.PI*2);
+      const offDist = rand(0, R*0.18);
+      const px = cx + Math.cos(offAngle)*offDist;
+      const py = cy + Math.sin(offAngle)*offDist;
+      angle = Math.atan2(py, px);
+      dist = Math.sqrt(px*px + py*py);
+    } else {
+      // Butun doira bo'ylab erkin sochilgan
+      angle = rand(0, Math.PI*2);
+      dist = rand(0, R*0.82);
+    }
+
+    const speed = rand(1.4, 2.5);
+    const dir = rand(0, Math.PI*2);
+    balls.push({
+      x: CX + Math.cos(angle)*dist,
+      y: CY + Math.sin(angle)*dist,
+      vx: Math.cos(dir)*speed,
+      vy: Math.sin(dir)*speed,
+      radius: 11,
+      flag: chosen[i].emoji,
+      name: chosen[i].name,
+      alive: true
+    });
+  }
+  renderParticipants();
+}
+
+function spawnExplosion(x, y) {
+  for (let i=0; i<10; i++) {
+    const a = rand(0, Math.PI*2);
+    const s = rand(1, 3.5);
+    particles.push({
+      x, y,
+      vx: Math.cos(a)*s,
+      vy: Math.sin(a)*s,
+      life: 25,
+      color: `hsl(${rand(0,60)}, 90%, 60%)`
+    });
+  }
+}
+
+function spawnCubes() {
+  const colors = ['#ff5e5e','#5ecbff','#ffd75e','#7ee0c0','#b28dff','#ff9ecb','#fff700'];
+  const count = 40;
+  for (let i=0; i<count; i++) {
+    const cube = document.createElement('div');
+    cube.className = 'cube';
+    const size = rand(8, 16);
+    cube.style.width = size + 'px';
+    cube.style.height = size + 'px';
+    cube.style.left = rand(0, 100) + '%';
+    cube.style.background = colors[Math.floor(Math.random()*colors.length)];
+    const duration = rand(1.8, 3.2);
+    const delay = rand(0, 0.6);
+    cube.style.animationDuration = duration + 's';
+    cube.style.animationDelay = delay + 's';
+    wrap.appendChild(cube);
+    setTimeout(() => cube.remove(), (duration+delay)*1000 + 100);
+  }
+}
+
+function update() {
+  const n = balls.length;
+  for (let i=0; i<n; i++) {
+    const b = balls[i];
+    if (!b.alive) continue;
+    b.x += b.vx;
+    b.y += b.vy;
+
+    const dx = b.x - CX, dy = b.y - CY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const angle = Math.atan2(dy, dx);
+    const inGap = Math.abs(angleDiff(angle, GAP_CENTER)) < GAP_WIDTH/2;
+
+    if (dist + b.radius > R) {
+      if (inGap) {
+        if (dist - b.radius > R) {
+          b.alive = false;
+          spawnExplosion(b.x, b.y);
+          playPop();
+        }
+      } else {
+        const nx = dx/dist, ny = dy/dist;
+        const dot = b.vx*nx + b.vy*ny;
+        b.vx -= 2*dot*nx;
+        b.vy -= 2*dot*ny;
+        const overlap = (dist + b.radius) - R;
+        b.x -= nx*overlap;
+        b.y -= ny*overlap;
+        maybePlayBounce();
+      }
+    }
+  }
+
+  for (let i=0; i<n; i++) {
+    const a = balls[i];
+    if (!a.alive) continue;
+    for (let j=i+1; j<n; j++) {
+      const b = balls[j];
+      if (!b.alive) continue;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < a.radius + b.radius && dist > 0) {
+        const nx = dx/dist, ny = dy/dist;
+        const rel = (b.vx-a.vx)*nx + (b.vy-a.vy)*ny;
+        if (rel < 0) {
+          a.vx += rel*nx; a.vy += rel*ny;
+          b.vx -= rel*nx; b.vy -= rel*ny;
+          maybePlayClick();
+        }
+        const overlap = (a.radius + b.radius - dist)/2;
+        a.x -= nx*overlap; a.y -= ny*overlap;
+        b.x += nx*overlap; b.y += ny*overlap;
+      }
+    }
+  }
+
+  balls = balls.filter(b => b.alive);
+
+  while (balls.length > 1 && balls.length <= nextBoostThreshold) {
+    nextBoostThreshold -= 10;
+    balls.forEach(b => {
+      b.vx *= 1.2;
+      b.vy *= 1.2;
+    });
+  }
+
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.05;
+    p.life--;
+  });
+  particles = particles.filter(p => p.life > 0);
+
+  if (balls.length === 1 && !gameOver) {
+    gameOver = true;
+    const winner = balls[0];
+    scores[winner.flag] += 1;
+    renderScoreboard();
+    winnerBanner.textContent = '🏆 ' + winner.flag + ' ' + winner.name + ' WINS!';
+    winnerBanner.classList.add('show');
+    spawnCubes();
+    playWin();
+    speakWinner(winner.name);
+
+    nextRoundTimer = setTimeout(() => {
+      winnerBanner.classList.remove('show');
+      roundNum += 1;
+      initBalls();
+    }, 2500);
+  } else if (balls.length === 0 && !gameOver) {
+    gameOver = true;
+    nextRoundTimer = setTimeout(() => {
+      roundNum += 1;
+      initBalls();
+    }, 1200);
+  }
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+
+  const startAngle = GAP_CENTER + GAP_WIDTH/2;
+  const endAngle = GAP_CENTER - GAP_WIDTH/2 + Math.PI*2;
+
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, startAngle, endAngle);
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = '#ffffff';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(CX, CY, R+3, startAngle, endAngle);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.stroke();
+
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.max(p.life/25, 0);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  balls.forEach(b => {
+    ctx.font = `${b.radius*1.9}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(b.flag, b.x, b.y);
+  });
+}
+
+function loop() {
+  if (!gameOver) update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize();
+renderScoreboard();
+initBalls();
+loop();
+</script>
+</body>
+</html>
